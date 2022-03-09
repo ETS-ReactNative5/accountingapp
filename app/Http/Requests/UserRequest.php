@@ -40,15 +40,6 @@ class UserRequest extends FormRequest
                 'required',
                 'min:8',
             ],
-            'companies' => [
-                'required',
-            ],
-            'companies.*.id' => [
-                'required',
-            ],
-            'companies.*.role' => [
-                'required',
-            ],
         ];
 
         if ($this->getMethod() == 'PUT') {
@@ -64,14 +55,5 @@ class UserRequest extends FormRequest
         }
 
         return $rules;
-    }
-
-    public function getUserPayload()
-    {
-        return collect($this->validated())
-            ->merge([
-                'creator_id' => $this->user()->id,
-            ])
-            ->toArray();
     }
 }

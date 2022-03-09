@@ -7,7 +7,6 @@ use Crater\Models\Payment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Vinkla\Hashids\Facades\Hashids;
 
 class SendPaymentMail extends Mailable
 {
@@ -33,7 +32,7 @@ class SendPaymentMail extends Mailable
      */
     public function build()
     {
-        $log = EmailLog::create([
+        EmailLog::create([
             'from' => $this->data['from'],
             'to' => $this->data['to'],
             'subject' => $this->data['subject'],
@@ -41,11 +40,6 @@ class SendPaymentMail extends Mailable
             'mailable_type' => Payment::class,
             'mailable_id' => $this->data['payment']['id'],
         ]);
-
-        $log->token = Hashids::connection(EmailLog::class)->encode($log->id);
-        $log->save();
-
-        $this->data['url'] = route('payment', ['email_log' => $log->token]);
 
         $mailContent = $this->from($this->data['from'], config('mail.from.name'))
                     ->subject($this->data['subject'])

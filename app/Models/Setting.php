@@ -9,8 +9,6 @@ class Setting extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['option', 'value'];
-
     public static function setSetting($key, $setting)
     {
         $old = self::whereOption($key)->first();
@@ -28,21 +26,6 @@ class Setting extends Model
         $set->save();
     }
 
-    public static function setSettings($settings)
-    {
-        foreach ($settings as $key => $value) {
-            self::updateOrCreate(
-                [
-                    'option' => $key,
-                ],
-                [
-                    'option' => $key,
-                    'value' => $value,
-                ]
-            );
-        }
-    }
-
     public static function getSetting($key)
     {
         $setting = static::whereOption($key)->first();
@@ -52,13 +35,5 @@ class Setting extends Model
         } else {
             return null;
         }
-    }
-
-    public static function getSettings($settings)
-    {
-        return static::whereIn('option', $settings)
-            ->get()->mapWithKeys(function ($item) {
-                return [$item['option'] => $item['value']];
-            });
     }
 }

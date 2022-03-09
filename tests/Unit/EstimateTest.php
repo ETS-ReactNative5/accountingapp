@@ -1,15 +1,25 @@
 <?php
 
-use Crater\Http\Requests\EstimatesRequest;
 use Crater\Models\Estimate;
 use Crater\Models\EstimateItem;
 use Crater\Models\Tax;
+use Crater\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     Artisan::call('db:seed', ['--class' => 'DatabaseSeeder', '--force' => true]);
     Artisan::call('db:seed', ['--class' => 'DemoSeeder', '--force' => true]);
+
+    $user = User::where('role', 'super admin')->first();
+    $this->withHeaders([
+        'company' => $user->company_id,
+    ]);
+    Sanctum::actingAs(
+        $user,
+        ['*']
+    );
 });
 
 test('estimate has many estimate items', function () {
@@ -22,10 +32,10 @@ test('estimate has many estimate items', function () {
     $this->assertTrue($estimate->items()->exists());
 });
 
-test('estimate belongs to customer', function () {
-    $estimate = Estimate::factory()->forCustomer()->create();
+test('estimate belongs to user', function () {
+    $estimate = Estimate::factory()->forUser()->create();
 
-    $this->assertTrue($estimate->customer()->exists());
+    $this->assertTrue($estimate->user()->exists());
 });
 
 test('estimate has many taxes', function () {
@@ -34,6 +44,38 @@ test('estimate has many taxes', function () {
     $this->assertCount(5, $estimate->taxes);
 
     $this->assertTrue($estimate->taxes()->exists());
+});
+
+test('get next estimate number', function () {
+    $estimate = Estimate::factory()->create();
+
+    $prefix = $estimate->getEstimatePrefixAttribute();
+
+    $nextNumber = $estimate->getNextEstimateNumber($prefix);
+
+    $estimate1 = Estimate::factory()->create();
+
+    $this->assertEquals($prefix.'-'.$nextNumber, $estimate1['estimate_number']);
+});
+
+test('get estimate prefix attribute', function () {
+    $estimate = Estimate::factory()->create();
+
+    $num = $estimate->getEstimateNumAttribute();
+
+    $prefix = $estimate->getEstimatePrefixAttribute();
+
+    $this->assertEquals($prefix.'-'.$num, $estimate['estimate_number']);
+});
+
+test('get estimate num attribute', function () {
+    $estimate = Estimate::factory()->create();
+
+    $prefix = $estimate->getEstimatePrefixAttribute();
+
+    $num = $estimate->getEstimateNumAttribute();
+
+    $this->assertEquals($prefix.'-'.$num, $estimate['estimate_number']);
 });
 
 test('create estimate', function () {
@@ -47,7 +89,7 @@ test('create estimate', function () {
     $estimate['taxes'] = [];
     array_push($estimate['taxes'], Tax::factory()->raw());
 
-    $request = new EstimatesRequest();
+    $request = new Request();
 
     $request->replace($estimate);
 
@@ -64,7 +106,7 @@ test('create estimate', function () {
 
     $this->assertDatabaseHas('estimates', [
         'estimate_number' => $estimate['estimate_number'],
-        'customer_id' => $estimate['customer_id'],
+        'user_id' => $estimate['user_id'],
         'template_name' => $estimate['template_name'],
         'sub_total' => $estimate['sub_total'],
         'total' => $estimate['total'],
@@ -91,7 +133,7 @@ test('update estimate', function () {
     array_push($newEstimate['items'], $item);
     array_push($newEstimate['taxes'], Tax::factory()->raw());
 
-    $request = new EstimatesRequest();
+    $request = new Request();
 
     $request->replace($newEstimate);
 
@@ -112,7 +154,7 @@ test('update estimate', function () {
 
     $this->assertDatabaseHas('estimates', [
         'estimate_number' => $newEstimate['estimate_number'],
-        'customer_id' => $newEstimate['customer_id'],
+        'user_id' => $newEstimate['user_id'],
         'template_name' => $newEstimate['template_name'],
         'sub_total' => $newEstimate['sub_total'],
         'total' => $newEstimate['total'],
@@ -139,7 +181,7 @@ test('create items', function () {
 
     $request->replace(['items' => $items ]);
 
-    Estimate::createItems($estimate, $request, $estimate->exchange_rate);
+    Estimate::createItems($estimate, $request);
 
     $this->assertDatabaseHas('estimate_items', [
         'estimate_id' => $estimate->id,
@@ -172,7 +214,7 @@ test('create taxes', function () {
 
     $request->replace(['taxes' => $taxes ]);
 
-    Estimate::createTaxes($estimate, $request, $estimate->exchange_rate);
+    Estimate::createTaxes($estimate, $request);
 
     $this->assertCount(2, $estimate->taxes);
 

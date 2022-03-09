@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use Crater\Models\Estimate;
 use Crater\Models\EstimateItem;
 use Crater\Models\Item;
 use Crater\Models\User;
@@ -35,9 +34,8 @@ class EstimateItemFactory extends Factory
             'price' => function (array $item) {
                 return Item::find($item['item_id'])->price;
             },
-            'estimate_id' => Estimate::factory(),
             'quantity' => $this->faker->randomDigitNotNull,
-            'company_id' => User::find(1)->companies()->first()->id,
+            'company_id' => User::where('role', 'super admin')->first()->company_id,
             'tax' => $this->faker->randomDigitNotNull,
             'total' => function (array $item) {
                 return ($item['price'] * $item['quantity']);
@@ -49,11 +47,6 @@ class EstimateItemFactory extends Factory
             'discount' => function (array $estimate) {
                 return $estimate['discount_type'] == 'percentage' ? (($estimate['discount_val'] * $estimate['total']) / 100) : $estimate['discount_val'];
             },
-            'exchange_rate' => $this->faker->randomDigitNotNull,
-            'base_discount_val' => $this->faker->randomDigitNotNull,
-            'base_price' => $this->faker->randomDigitNotNull,
-            'base_total' => $this->faker->randomDigitNotNull,
-            'base_tax' => $this->faker->randomDigitNotNull,
         ];
     }
 }

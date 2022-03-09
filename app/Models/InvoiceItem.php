@@ -3,7 +3,6 @@
 namespace Crater\Models;
 
 use Carbon\Carbon;
-use Crater\Traits\HasCustomFieldsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -11,10 +10,21 @@ use Illuminate\Support\Facades\DB;
 class InvoiceItem extends Model
 {
     use HasFactory;
-    use HasCustomFieldsTrait;
 
-    protected $guarded = [
-        'id'
+    protected $fillable = [
+        'invoice_id',
+        'name',
+        'item_id',
+        'description',
+        'company_id',
+        'quantity',
+        'price',
+        'discount_type',
+        'discount_val',
+        'total',
+        'tax',
+        'discount',
+        'unit_name',
     ];
 
     protected $casts = [
@@ -39,11 +49,6 @@ class InvoiceItem extends Model
     public function taxes()
     {
         return $this->hasMany(Tax::class);
-    }
-
-    public function recurringInvoice()
-    {
-        return $this->belongsTo(RecurringInvoice::class);
     }
 
     public function scopeWhereCompany($query, $company_id)
@@ -75,7 +80,7 @@ class InvoiceItem extends Model
     public function scopeItemAttributes($query)
     {
         $query->select(
-            DB::raw('sum(quantity) as total_quantity, sum(base_total) as total_amount, invoice_items.name')
+            DB::raw('sum(quantity) as total_quantity, sum(total) as total_amount, invoice_items.name')
         )->groupBy('invoice_items.name');
     }
 }

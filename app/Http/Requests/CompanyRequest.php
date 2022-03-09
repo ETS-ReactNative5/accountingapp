@@ -3,7 +3,6 @@
 namespace Crater\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class CompanyRequest extends FormRequest
 {
@@ -27,24 +26,10 @@ class CompanyRequest extends FormRequest
         return [
             'name' => [
                 'required',
-                Rule::unique('companies')->ignore($this->header('company'), 'id'),
             ],
-            'slug' => [
-                'nullable'
-            ],
-            'address.country_id' => [
+            'country_id' => [
                 'required',
             ],
         ];
-    }
-
-    public function getCompanyPayload()
-    {
-        return collect($this->validated())
-            ->only([
-                'name',
-                'slug'
-            ])
-            ->toArray();
     }
 }

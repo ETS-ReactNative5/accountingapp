@@ -24,7 +24,10 @@ class SettingRequest extends FormRequest
     public function rules()
     {
         return [
-            'settings' => [
+            'key' => [
+                'required',
+            ],
+            'value' => [
                 'required',
             ],
         ];

@@ -1,11 +1,22 @@
 <?php
 
 use Crater\Models\Expense;
+use Crater\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     Artisan::call('db:seed', ['--class' => 'DatabaseSeeder', '--force' => true]);
     Artisan::call('db:seed', ['--class' => 'DemoSeeder', '--force' => true]);
+
+    $user = User::where('role', 'super admin')->first();
+    $this->withHeaders([
+        'company' => $user->company_id,
+    ]);
+    Sanctum::actingAs(
+        $user,
+        ['*']
+    );
 });
 
 test('expense belongs to category', function () {
@@ -14,14 +25,8 @@ test('expense belongs to category', function () {
     $this->assertTrue($expense->category()->exists());
 });
 
-test('expense belongs to customer', function () {
-    $expense = Expense::factory()->forCustomer()->create();
+test('expense belongs to user', function () {
+    $expense = Expense::factory()->forUser()->create();
 
-    $this->assertTrue($expense->customer()->exists());
-});
-
-test('expense belongs to company', function () {
-    $expense = Expense::factory()->forCompany()->create();
-
-    $this->assertTrue($expense->company()->exists());
+    $this->assertTrue($expense->user()->exists());
 });

@@ -2,6 +2,7 @@
 
 namespace Crater\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,11 +14,6 @@ class CustomField extends Model
         'id',
     ];
 
-    protected $dates = [
-        'date_answer',
-        'date_time_answer'
-    ];
-
     protected $appends = [
         'defaultAnswer',
     ];
@@ -26,10 +22,24 @@ class CustomField extends Model
         'options' => 'array',
     ];
 
+    public function setDateAnswerAttribute($value)
+    {
+        if ($value && $value != null) {
+            $this->attributes['date_answer'] = Carbon::createFromFormat('Y-m-d', $value);
+        }
+    }
+
     public function setTimeAnswerAttribute($value)
     {
         if ($value && $value != null) {
             $this->attributes['time_answer'] = date("H:i:s", strtotime($value));
+        }
+    }
+
+    public function setDateTimeAnswerAttribute($value)
+    {
+        if ($value && $value != null) {
+            $this->attributes['date_time_answer'] = Carbon::createFromFormat('Y-m-d H:i', $value);
         }
     }
 
@@ -45,24 +55,19 @@ class CustomField extends Model
         return $this->$value_type;
     }
 
-    public function getInUseAttribute()
-    {
-        return $this->customFieldValues()->exists();
-    }
-
     public function company()
     {
         return $this->belongsTo(Company::class);
     }
 
-    public function customFieldValues()
+    public function customFieldValue()
     {
         return $this->hasMany(CustomFieldValue::class);
     }
 
-    public function scopeWhereCompany($query)
+    public function scopeWhereCompany($query, $company_id)
     {
-        return $query->where('custom_fields.company_id', request()->header('company'));
+        $query->where('custom_fields.company_id', $company_id);
     }
 
     public function scopeWhereSearch($query, $search)
@@ -76,7 +81,7 @@ class CustomField extends Model
     public function scopePaginateData($query, $limit)
     {
         if ($limit == 'all') {
-            return $query->get();
+            return collect(['data' => $query->get()]);
         }
 
         return $query->paginate($limit);
@@ -105,16 +110,39 @@ class CustomField extends Model
         $data = $request->validated();
         $data[getCustomFieldValueKey($request->type)] = $request->default_answer;
         $data['company_id'] = $request->header('company');
-        $data['slug'] = clean_slug($request->model_type, $request->name);
+        $data['slug'] = clean_slug($request->model_type, $request->label);
 
         return CustomField::create($data);
     }
 
     public function updateCustomField($request)
     {
+        $oldSlug = $this->slug;
         $data = $request->validated();
         $data[getCustomFieldValueKey($request->type)] = $request->default_answer;
+        $data['slug'] = clean_slug($request->model_type, $request->label, $this->id);
         $this->update($data);
+
+        if ($oldSlug !== $data['slug']) {
+            $settings = [
+                'invoice_company_address_format',
+                'invoice_shipping_address_format',
+                'invoice_billing_address_format',
+                'estimate_company_address_format',
+                'estimate_shipping_address_format',
+                'estimate_billing_address_format',
+                'payment_company_address_format',
+                'payment_from_customer_address_format',
+            ];
+
+            $settings = CompanySetting::getSettings($settings, $this->company_id);
+
+            foreach ($settings as $key => $value) {
+                $settings[$key] = str_replace($oldSlug, $data['slug'], $value);
+            }
+
+            CompanySetting::setSettings($settings, $this->company_id);
+        }
 
         return $this;
     }

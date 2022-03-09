@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use Crater\Models\Currency;
 use Crater\Models\Tax;
 use Crater\Models\TaxType;
 use Crater\Models\User;
@@ -32,11 +31,8 @@ class TaxFactory extends Factory
             'name' => function (array $item) {
                 return TaxType::find($item['tax_type_id'])->name;
             },
-            'company_id' => User::find(1)->companies()->first()->id,
+            'company_id' => User::where('role', 'super admin')->first()->company_id,
             'amount' => $this->faker->randomDigitNotNull,
-            'compound_tax' => $this->faker->randomDigitNotNull,
-            'base_amount' => $this->faker->randomDigitNotNull,
-            'currency_id' => Currency::where('name', 'US Dollar')->first()->id,
         ];
     }
 }

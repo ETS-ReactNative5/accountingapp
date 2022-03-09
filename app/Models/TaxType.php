@@ -9,31 +9,27 @@ class TaxType extends Model
 {
     use HasFactory;
 
-    protected $guarded = [
-        'id',
+    protected $fillable = [
+        'name',
+        'percent',
+        'company_id',
+        'compound_tax',
+        'collective_tax',
+        'description',
     ];
 
     protected $casts = [
         'percent' => 'float',
-        'compound_tax' => 'boolean'
     ];
-
-    public const TYPE_GENERAL = 'GENERAL';
-    public const TYPE_MODULE = 'MODULE';
 
     public function taxes()
     {
         return $this->hasMany(Tax::class);
     }
 
-    public function company()
+    public function scopeWhereCompany($query, $company_id)
     {
-        return $this->belongsTo(Company::class);
-    }
-
-    public function scopeWhereCompany($query)
-    {
-        $query->where('company_id', request()->header('company'));
+        $query->where('company_id', $company_id);
     }
 
     public function scopeWhereTaxType($query, $tax_type_id)
@@ -77,7 +73,7 @@ class TaxType extends Model
     public function scopePaginateData($query, $limit)
     {
         if ($limit == 'all') {
-            return $query->get();
+            return collect(['data' => $query->get()]);
         }
 
         return $query->paginate($limit);

@@ -2,7 +2,6 @@
 
 namespace Crater\Http\Requests;
 
-use Crater\Models\PaymentMethod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,30 +27,17 @@ class PaymentMethodRequest extends FormRequest
         $data = [
             'name' => [
                 'required',
-                Rule::unique('payment_methods')
-                    ->where('company_id', $this->header('company')),
+                'unique:payment_methods,name',
             ],
         ];
 
         if ($this->getMethod() == 'PUT') {
             $data['name'] = [
                 'required',
-                Rule::unique('payment_methods')
-                    ->ignore($this->route('payment_method'), 'id')
-                    ->where('company_id', $this->header('company')),
+                Rule::unique('payment_methods')->ignore($this->route('payment_method'), 'id'),
             ];
         }
 
         return $data;
-    }
-
-    public function getPaymentMethodPayload()
-    {
-        return collect($this->validated())
-            ->merge([
-                'company_id' => $this->header('company'),
-                'type' => PaymentMethod::TYPE_GENERAL,
-            ])
-            ->toArray();
     }
 }

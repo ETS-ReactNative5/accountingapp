@@ -6,13 +6,11 @@ use App;
 use Barryvdh\DomPDF\Facade as PDF;
 use Carbon\Carbon;
 use Crater\Mail\SendEstimateMail;
-use Crater\Services\SerialNumberFormatter;
 use Crater\Traits\GeneratesPdfTrait;
 use Crater\Traits\HasCustomFieldsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Vinkla\Hashids\Facades\Hashids;
@@ -35,8 +33,6 @@ class Estimate extends Model implements HasMedia
         'created_at',
         'updated_at',
         'deleted_at',
-        'estimate_date',
-        'expiry_date'
     ];
 
     protected $appends = [
@@ -53,12 +49,55 @@ class Estimate extends Model implements HasMedia
         'sub_total' => 'integer',
         'discount' => 'float',
         'discount_val' => 'integer',
-        'exchange_rate' => 'float'
     ];
+
+    public function setEstimateDateAttribute($value)
+    {
+        if ($value) {
+            $this->attributes['estimate_date'] = Carbon::createFromFormat('Y-m-d', $value);
+        }
+    }
+
+    public function setExpiryDateAttribute($value)
+    {
+        if ($value) {
+            $this->attributes['expiry_date'] = Carbon::createFromFormat('Y-m-d', $value);
+        }
+    }
 
     public function getEstimatePdfUrlAttribute()
     {
         return url('/estimates/pdf/'.$this->unique_hash);
+    }
+
+    public static function getNextEstimateNumber($value)
+    {
+        // Get the last created order
+        $lastOrder = Estimate::where('estimate_number', 'LIKE', $value.'-%')
+            ->orderBy('estimate_number', 'desc')
+            ->first();
+
+        // Get number length config
+        $numberLength = CompanySetting::getSetting('estimate_number_length', request()->header('company'));
+        $numberLengthText = "%0{$numberLength}d";
+
+        if (! $lastOrder) {
+            // We get here if there is no order at all
+            // If there is no number set it to 0, which will be 1 at the end.
+            $number = 0;
+        } else {
+            $number = explode("-", $lastOrder->estimate_number);
+            $number = $number[1];
+        }
+
+        // If we have ORD000001 in the database then we only want the number
+        // So the substr returns this 000001
+
+        // Add the string in front and higher up the number.
+        // the %05d part makes sure that there are always 6 numbers in the string.
+        // so it adds the missing zero's when needed.
+
+        return sprintf($numberLengthText, intval($number) + 1);
     }
 
     public function emailLogs()
@@ -71,9 +110,9 @@ class Estimate extends Model implements HasMedia
         return $this->hasMany('Crater\Models\EstimateItem');
     }
 
-    public function customer()
+    public function user()
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo('Crater\Models\User', 'user_id');
     }
 
     public function creator()
@@ -86,14 +125,38 @@ class Estimate extends Model implements HasMedia
         return $this->belongsTo('Crater\Models\Company');
     }
 
-    public function currency()
-    {
-        return $this->belongsTo(Currency::class);
-    }
-
     public function taxes()
     {
         return $this->hasMany(Tax::class);
+    }
+
+    public function getEstimateNumAttribute()
+    {
+        $position = $this->strposX($this->estimate_number, "-", 1) + 1;
+
+        return substr($this->estimate_number, $position);
+    }
+
+    public function getEstimatePrefixAttribute()
+    {
+        $prefix = explode("-", $this->estimate_number)[0];
+
+        return $prefix;
+    }
+
+    private function strposX($haystack, $needle, $number)
+    {
+        if ($number == '1') {
+            return strpos($haystack, $needle);
+        } elseif ($number > '1') {
+            return strpos(
+                $haystack,
+                $needle,
+                $this->strposX($haystack, $needle, $number - 1) + strlen($needle)
+            );
+        } else {
+            return error_log('Error: Value for parameter $number is out of range');
+        }
     }
 
     public function getFormattedExpiryDateAttribute($value)
@@ -125,7 +188,7 @@ class Estimate extends Model implements HasMedia
 
     public function scopeWhereEstimateNumber($query, $estimateNumber)
     {
-        return $query->where('estimates.estimate_number', 'LIKE', '%'.$estimateNumber.'%');
+        return $query->where('estimates.estimate_number', $estimateNumber);
     }
 
     public function scopeWhereEstimate($query, $estimate_id)
@@ -136,7 +199,7 @@ class Estimate extends Model implements HasMedia
     public function scopeWhereSearch($query, $search)
     {
         foreach (explode(' ', $search) as $term) {
-            $query->whereHas('customer', function ($query) use ($term) {
+            $query->whereHas('user', function ($query) use ($term) {
                 $query->where('name', 'LIKE', '%'.$term.'%')
                     ->orWhere('contact_name', 'LIKE', '%'.$term.'%')
                     ->orWhere('company_name', 'LIKE', '%'.$term.'%');
@@ -175,8 +238,8 @@ class Estimate extends Model implements HasMedia
         }
 
         if ($filters->get('orderByField') || $filters->get('orderBy')) {
-            $field = $filters->get('orderByField') ? $filters->get('orderByField') : 'sequence_number';
-            $orderBy = $filters->get('orderBy') ? $filters->get('orderBy') : 'desc';
+            $field = $filters->get('orderByField') ? $filters->get('orderByField') : 'estimate_number';
+            $orderBy = $filters->get('orderBy') ? $filters->get('orderBy') : 'asc';
             $query->whereOrder($field, $orderBy);
         }
     }
@@ -186,20 +249,20 @@ class Estimate extends Model implements HasMedia
         $query->orderBy($orderByField, $orderBy);
     }
 
-    public function scopeWhereCompany($query)
+    public function scopeWhereCompany($query, $company_id)
     {
-        $query->where('estimates.company_id', request()->header('company'));
+        $query->where('estimates.company_id', $company_id);
     }
 
     public function scopeWhereCustomer($query, $customer_id)
     {
-        $query->where('estimates.customer_id', $customer_id);
+        $query->where('estimates.user_id', $customer_id);
     }
 
     public function scopePaginateData($query, $limit)
     {
         if ($limit == 'all') {
-            return $query->get();
+            return collect(['data' => $query->get()]);
         }
 
         return $query->paginate($limit);
@@ -207,7 +270,22 @@ class Estimate extends Model implements HasMedia
 
     public static function createEstimate($request)
     {
-        $data = $request->getEstimatePayload();
+        $data = $request->except(['items', 'taxes']);
+
+        $data['creator_id'] = Auth::id();
+        $data['status'] = self::STATUS_DRAFT;
+        $data['unique_hash'] = str_random(60);
+        $data['company_id'] = $request->header('company');
+
+        $data['tax_per_item'] = CompanySetting::getSetting(
+            'tax_per_item',
+            $request->header('company')
+        ) ?? 'NO';
+
+        $data['discount_per_item'] = CompanySetting::getSetting(
+            'discount_per_item',
+            $request->header('company')
+        ) ?? 'NO';
 
         if ($request->has('estimateSend')) {
             $data['status'] = self::STATUS_SENT;
@@ -215,26 +293,12 @@ class Estimate extends Model implements HasMedia
 
         $estimate = self::create($data);
         $estimate->unique_hash = Hashids::connection(Estimate::class)->encode($estimate->id);
-        $serial = (new SerialNumberFormatter())
-            ->setModel($estimate)
-            ->setCompany($estimate->company_id)
-            ->setCustomer($estimate->customer_id)
-            ->setNextNumbers();
-
-        $estimate->sequence_number = $serial->nextSequenceNumber;
-        $estimate->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $estimate->save();
 
-        $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
-
-        if ((string)$data['currency_id'] !== $company_currency) {
-            ExchangeRateLog::addExchangeRateLog($estimate);
-        }
-
-        self::createItems($estimate, $request, $estimate->exchange_rate);
+        self::createItems($estimate, $request);
 
         if ($request->has('taxes') && (! empty($request->taxes))) {
-            self::createTaxes($estimate, $request, $estimate->exchange_rate);
+            self::createTaxes($estimate, $request);
         }
 
         $customFields = $request->customFields;
@@ -243,45 +307,27 @@ class Estimate extends Model implements HasMedia
             $estimate->addCustomFields($customFields);
         }
 
-        return $estimate;
+        return Estimate::with([
+            'items.taxes',
+            'user',
+            'taxes'
+        ])
+            ->find($estimate->id);
     }
 
     public function updateEstimate($request)
     {
-        $data = $request->getEstimatePayload();
-
-        $serial = (new SerialNumberFormatter())
-            ->setModel($this)
-            ->setCompany($this->company_id)
-            ->setCustomer($request->customer_id)
-            ->setModelObject($this->id)
-            ->setNextNumbers();
-
-        $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+        $data = $request->except(['items', 'taxes']);
 
         $this->update($data);
-
-        $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
-
-        if ((string)$data['currency_id'] !== $company_currency) {
-            ExchangeRateLog::addExchangeRateLog($this);
-        }
-
-        $this->items->map(function ($item) {
-            $fields = $item->fields()->get();
-
-            $fields->map(function ($field) {
-                $field->delete();
-            });
-        });
 
         $this->items()->delete();
         $this->taxes()->delete();
 
-        self::createItems($this, $request, $this->exchange_rate);
+        self::createItems($this, $request);
 
         if ($request->has('taxes') && (! empty($request->taxes))) {
-            self::createTaxes($this, $request, $this->exchange_rate);
+            self::createTaxes($this, $request);
         }
 
         if ($request->customFields) {
@@ -290,26 +336,18 @@ class Estimate extends Model implements HasMedia
 
         return Estimate::with([
                 'items.taxes',
-                'items.fields',
-                'items.fields.customField',
-                'customer',
+                'user',
                 'taxes'
             ])
             ->find($this->id);
     }
 
-    public static function createItems($estimate, $request, $exchange_rate)
+    public static function createItems($estimate, $request)
     {
         $estimateItems = $request->items;
 
         foreach ($estimateItems as $estimateItem) {
             $estimateItem['company_id'] = $request->header('company');
-            $estimateItem['exchange_rate'] = $exchange_rate;
-            $estimateItem['base_price'] = $estimateItem['price'] * $exchange_rate;
-            $estimateItem['base_discount_val'] = $estimateItem['discount_val'] * $exchange_rate;
-            $estimateItem['base_tax'] = $estimate['tax'] * $exchange_rate;
-            $estimateItem['base_total'] = $estimateItem['total'] * $exchange_rate;
-
             $item = $estimate->items()->create($estimateItem);
 
             if (array_key_exists('taxes', $estimateItem) && $estimateItem['taxes']) {
@@ -320,74 +358,69 @@ class Estimate extends Model implements HasMedia
                     }
                 }
             }
-
-            if (array_key_exists('custom_fields', $estimateItem) && $estimateItem['custom_fields']) {
-                $item->addCustomFields($estimateItem['custom_fields']);
-            }
         }
     }
 
-    public static function createTaxes($estimate, $request, $exchange_rate)
+    public static function createTaxes($estimate, $request)
     {
         $estimateTaxes = $request->taxes;
 
         foreach ($estimateTaxes as $tax) {
             if (gettype($tax['amount']) !== "NULL") {
                 $tax['company_id'] = $request->header('company');
-                $tax['exchange_rate'] = $exchange_rate;
-                $tax['base_amount'] = $tax['amount'] * $exchange_rate;
-                $tax['currency_id'] = $estimate->currency_id;
-
                 $estimate->taxes()->create($tax);
             }
         }
     }
 
-    public function sendEstimateData($data)
+    public function send($data)
     {
         $data['estimate'] = $this->toArray();
-        $data['user'] = $this->customer->toArray();
+        $data['user'] = $this->user->toArray();
         $data['company'] = $this->company->toArray();
         $data['body'] = $this->getEmailBody($data['body']);
         $data['attach']['data'] = ($this->getEmailAttachmentSetting()) ? $this->getPDFData() : null;
 
-        return $data;
-    }
-
-    public function send($data)
-    {
-        $data = $this->sendEstimateData($data);
+        \Mail::to($data['to'])->send(new SendEstimateMail($data));
 
         if ($this->status == Estimate::STATUS_DRAFT) {
             $this->status = Estimate::STATUS_SENT;
             $this->save();
         }
 
-        \Mail::to($data['to'])->send(new SendEstimateMail($data));
-
         return [
             'success' => true,
-            'type' => 'send',
         ];
     }
 
     public function getPDFData()
     {
-        $taxes = collect();
+        $taxTypes = [];
+        $taxes = [];
+        $labels = [];
 
         if ($this->tax_per_item === 'YES') {
             foreach ($this->items as $item) {
                 foreach ($item->taxes as $tax) {
-                    $found = $taxes->filter(function ($item) use ($tax) {
-                        return $item->tax_type_id == $tax->tax_type_id;
-                    })->first();
-
-                    if ($found) {
-                        $found->amount += $tax->amount;
-                    } else {
-                        $taxes->push($tax);
+                    if (! in_array($tax->name, $taxTypes)) {
+                        array_push($taxTypes, $tax->name);
+                        array_push($labels, $tax->name.' ('.$tax->percent.'%)');
                     }
                 }
+            }
+
+            foreach ($taxTypes as $taxType) {
+                $total = 0;
+
+                foreach ($this->items as $item) {
+                    foreach ($item->taxes as $tax) {
+                        if ($tax->name == $taxType) {
+                            $total += $tax->amount;
+                        }
+                    }
+                }
+
+                array_push($taxes, $total);
             }
         }
 
@@ -395,7 +428,6 @@ class Estimate extends Model implements HasMedia
 
         $company = Company::find($this->company_id);
         $locale = CompanySetting::getSetting('language', $company->id);
-        $customFields = CustomField::where('model_type', 'Item')->get();
 
         App::setLocale($locale);
 
@@ -403,28 +435,20 @@ class Estimate extends Model implements HasMedia
 
         view()->share([
             'estimate' => $this,
-            'customFields' => $customFields,
             'logo' => $logo ?? null,
             'company_address' => $this->getCompanyAddress(),
             'shipping_address' => $this->getCustomerShippingAddress(),
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
+            'labels' => $labels,
             'taxes' => $taxes,
         ]);
-
-        if (request()->has('preview')) {
-            return view('app.pdf.estimate.'.$estimateTemplate);
-        }
 
         return PDF::loadView('app.pdf.estimate.'.$estimateTemplate);
     }
 
     public function getCompanyAddress()
     {
-        if ($this->company && (! $this->company->address()->exists())) {
-            return false;
-        }
-
         $format = CompanySetting::getSetting('estimate_company_address_format', $this->company_id);
 
         return $this->getFormattedString($format);
@@ -432,10 +456,6 @@ class Estimate extends Model implements HasMedia
 
     public function getCustomerShippingAddress()
     {
-        if ($this->customer && (! $this->customer->shippingAddress()->exists())) {
-            return false;
-        }
-
         $format = CompanySetting::getSetting('estimate_shipping_address_format', $this->company_id);
 
         return $this->getFormattedString($format);
@@ -443,10 +463,6 @@ class Estimate extends Model implements HasMedia
 
     public function getCustomerBillingAddress()
     {
-        if ($this->customer && (! $this->customer->billingAddress()->exists())) {
-            return false;
-        }
-
         $format = CompanySetting::getSetting('estimate_billing_address_format', $this->company_id);
 
         return $this->getFormattedString($format);
@@ -484,56 +500,7 @@ class Estimate extends Model implements HasMedia
             '{ESTIMATE_EXPIRY_DATE}' => $this->formattedExpiryDate,
             '{ESTIMATE_NUMBER}' => $this->estimate_number,
             '{ESTIMATE_REF_NUMBER}' => $this->reference_number,
+            '{ESTIMATE_LINK}' => url('/customer/estimates/pdf/'.$this->unique_hash),
         ];
-    }
-
-    public static function estimateTemplates()
-    {
-        $templates = Storage::disk('views')->files('/app/pdf/estimate');
-        $estimateTemplates = [];
-
-        foreach ($templates as $key => $template) {
-            $templateName = Str::before(basename($template), '.blade.php');
-            $estimateTemplates[$key]['name'] = $templateName;
-            $estimateTemplates[$key]['path'] = vite_asset('/img/PDF/'.$templateName.'.png');
-        }
-
-        return $estimateTemplates;
-    }
-
-    public function getInvoiceTemplateName()
-    {
-        $templateName = Str::replace('estimate', 'invoice', $this->template_name);
-
-        $name = [];
-
-        foreach (Invoice::invoiceTemplates() as $template) {
-            $name[] = $template['name'];
-        }
-
-        if (in_array($templateName, $name) == false) {
-            $templateName = 'invoice1';
-        }
-
-        return $templateName;
-    }
-
-    public function checkForEstimateConvertAction()
-    {
-        $convertEstimateAction = CompanySetting::getSetting(
-            'estimate_convert_action',
-            $this->company_id
-        );
-
-        if ($convertEstimateAction === 'delete_estimate') {
-            $this->delete();
-        }
-
-        if ($convertEstimateAction === 'mark_estimate_as_accepted') {
-            $this->status = self::STATUS_ACCEPTED;
-            $this->save();
-        }
-
-        return true;
     }
 }

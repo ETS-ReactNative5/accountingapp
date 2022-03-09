@@ -11,11 +11,6 @@ class Note extends Model
 
     protected $guarded = ['id'];
 
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
-    }
-
     public function scopeApplyFilters($query, array $filters)
     {
         $filters = collect($filters);
@@ -37,10 +32,5 @@ class Note extends Model
     public function scopeWhereType($query, $type)
     {
         return $query->where('type', $type);
-    }
-
-    public function scopeWhereCompany($query)
-    {
-        $query->where('notes.company_id', request()->header('company'));
     }
 }

@@ -16,7 +16,7 @@ trait GeneratesPdfTrait
         if ($pdf && file_exists($pdf['path'])) {
             return response()->make(file_get_contents($pdf['path']), 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="'.$pdf['file_name'].'"',
+                'Content-Disposition' => 'inline; filename="'.$pdf['file_name'].'.pdf"',
             ]);
         }
 
@@ -83,7 +83,7 @@ trait GeneratesPdfTrait
         \Storage::disk('local')->put('temp/'.$collection_name.'/'.$this->id.'/temp.pdf', $pdf->output());
 
         if ($deleteExistingFile) {
-            $this->clearMediaCollection($this->id);
+            $this->clearMediaCollection($collection_name);
         }
 
         $file_disk = FileDisk::whereSetAsDefault(true)->first();
@@ -110,7 +110,7 @@ trait GeneratesPdfTrait
 
     public function getFieldsArray()
     {
-        $customer = $this->customer;
+        $customer = $this->user;
         $shippingAddress = $customer->shippingAddress ?? new Address();
         $billingAddress = $customer->billingAddress ?? new Address();
         $companyAddress = $this->company->address ?? new Address();
@@ -148,7 +148,7 @@ trait GeneratesPdfTrait
         ];
 
         $customFields = $this->fields;
-        $customerCustomFields = $this->customer->fields;
+        $customerCustomFields = $this->user->fields;
 
         foreach ($customFields as $customField) {
             $fields['{'.$customField->customField->slug.'}'] = $customField->defaultAnswer;
@@ -156,10 +156,6 @@ trait GeneratesPdfTrait
 
         foreach ($customerCustomFields as $customField) {
             $fields['{'.$customField->customField->slug.'}'] = $customField->defaultAnswer;
-        }
-
-        foreach ($fields as $key => $field) {
-            $fields[$key] = htmlspecialchars($field, ENT_QUOTES, 'UTF-8');
         }
 
         return $fields;

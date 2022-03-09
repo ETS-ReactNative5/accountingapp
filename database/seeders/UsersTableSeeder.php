@@ -6,8 +6,6 @@ use Crater\Models\Company;
 use Crater\Models\Setting;
 use Crater\Models\User;
 use Illuminate\Database\Seeder;
-use Silber\Bouncer\BouncerFacade;
-use Vinkla\Hashids\Facades\Hashids;
 
 class UsersTableSeeder extends Seeder
 {
@@ -27,17 +25,11 @@ class UsersTableSeeder extends Seeder
 
         $company = Company::create([
             'name' => 'xyz',
-            'owner_id' => $user->id,
-            'slug' => 'xyz'
+            'unique_hash' => str_random(20),
         ]);
 
-        $company->unique_hash = Hashids::connection(Company::class)->encode($company->id);
-        $company->save();
-        $company->setupDefaultData();
-        $user->companies()->attach($company->id);
-        BouncerFacade::scope()->to($company->id);
-
-        $user->assign('super admin');
+        $user->company_id = $company->id;
+        $user->save();
 
         Setting::setSetting('profile_complete', 0);
     }

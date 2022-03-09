@@ -22,7 +22,7 @@ Web Application is made using Laravel & VueJS while the Mobile Apps are built us
 - [Installation Steps](https://docs.craterapp.com/installation.html)
 - [User Guide](https://docs.craterapp.com/)
 - [Developer Guide](https://docs.craterapp.com/developer-guide.html)
-- [API Documentation](https://api-docs.craterapp.com)
+- [API Documentation](https://docs.craterapp.com/api-documentation.html)
 
 ## Download
 
@@ -52,26 +52,18 @@ Join the Crater discord server to discuss:
 - [x] Performance Improvements
 - [x] Customer View page
 - [x] Add and Use Custom Fields on Invoices & Estimates.
-- [x] Multiple Companies
-- [x] Recurring Invoices
-- [x] Customer Portal
-- [x] Accept Payments (Stripe Integration)
-- [x] White Labeling (Easy Invoice, Email & Consumer Portal Theme customisation)
-- [ ] Modules API
-- [ ] Blockchain Integration
-- [ ] Web 3.0 Accounting
-- [ ] Vendors & Bills
-- [ ] Inventory Management 
-- [ ] Payment Reminders
+- [ ] Modules
+- [ ] Multiple Companies
+- [ ] White Labeling (Easy Invoice, Email & Consumer Portal Theme customisation)
+- [ ] Vendors, Inventory & Bills
+- [ ] Recurring Invoices & Payment Reminders
 - [ ] Improve Accessibility
-- [ ] Debit & Credit Notes
-- [ ] Time Tracking
-- [ ] Full service Payroll
+- [ ] Customer Portal
+- [ ] Accept Payments (Stripe Integration)
 
+## Credits
 
-## Copyright
-
-© 2022 Crater Invoice, Inc.
+Crater is a product of [Bytefury](https://bytefury.com)
 
 **Special thanks to:**
 
@@ -97,5 +89,5 @@ Help us translate on https://crowdin.com/project/crater-invoice
 
 ## License
 
-Crater is released under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3.
-See [LICENSE](LICENSE) for details.
+Crater is released under the Attribution Assurance License.
+See [LICENSE](https://craterapp.com/license) for full details & use-cases.

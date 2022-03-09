@@ -9,15 +9,16 @@ use GuzzleHttp\Exception\RequestException;
 // Implementation taken from Akaunting - https://github.com/akaunting/akaunting
 trait SiteApi
 {
-    protected static function getRemote($url, $data = [], $token = null)
+    protected static function getRemote($url, $data = [])
     {
-        $client = new Client(['verify' => false, 'base_uri' => config('crater.base_url').'/']);
+        $base = 'https://craterapp.com/';
+
+        $client = new Client(['verify' => false, 'base_uri' => $base]);
 
         $headers['headers'] = [
             'Accept' => 'application/json',
             'Referer' => url('/'),
             'crater' => Setting::getSetting('version'),
-            'Authorization' => "Bearer {$token}",
         ];
 
         $data['http_errors'] = false;

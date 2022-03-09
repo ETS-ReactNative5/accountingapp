@@ -1,14 +1,20 @@
-// .eslintrc.js
-
 module.exports = {
-  extends: [
-    // add more generic rulesets here, such as:
-    // 'eslint:recommended',
-    "plugin:vue/vue3-recommended",
-    "prettier",
-  ],
-  rules: {
-    // override/add rules settings here, such as:
-    // 'vue/no-unused-vars': 'error'
+  root: true,
+  env: {
+    node: true,
   },
-};
+  extends: [
+    'plugin:vue/recommended',
+    'eslint:recommended',
+    'prettier/vue',
+    'plugin:prettier/recommended',
+  ],
+  parserOptions: {
+    parser: 'babel-eslint',
+  },
+  plugins: ['prettier'],
+  rules: {
+    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+  },
+}

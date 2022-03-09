@@ -1,15 +1,27 @@
 <?php
 
-use Crater\Http\Requests\InvoicesRequest;
 use Crater\Models\Invoice;
 use Crater\Models\InvoiceItem;
 use Crater\Models\Tax;
+use Crater\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     Artisan::call('db:seed', ['--class' => 'DatabaseSeeder', '--force' => true]);
     Artisan::call('db:seed', ['--class' => 'DemoSeeder', '--force' => true]);
+    Artisan::call('db:seed', ['--class' => 'UnitSeeder', '--force' => true]);
+    Artisan::call('db:seed', ['--class' => 'PaymentMethodSeeder', '--force' => true]);
+
+    $user = User::where('role', 'super admin')->first();
+    $this->withHeaders([
+        'company' => $user->company_id,
+    ]);
+    Sanctum::actingAs(
+        $user,
+        ['*']
+    );
 });
 
 test('invoice has many invoice items', function () {
@@ -36,18 +48,51 @@ test('invoice has many payments', function () {
     $this->assertTrue($invoice->payments()->exists());
 });
 
-test('invoice belongs to customer', function () {
-    $invoice = Invoice::factory()->forCustomer()->create();
+test('invoice belongs to user', function () {
+    $invoice = Invoice::factory()->forUser()->create();
 
-    $this->assertTrue($invoice->customer()->exists());
+    $this->assertTrue($invoice->user()->exists());
 });
+
+test('get next invoice number', function () {
+    $invoice = Invoice::factory()->create();
+
+    $prefix = $invoice->getInvoicePrefixAttribute();
+
+    $nextNumber = $invoice->getNextInvoiceNumber($prefix);
+
+    $invoice1 = Invoice::factory()->create();
+
+    $this->assertEquals($prefix.'-'.$nextNumber, $invoice1['invoice_number']);
+});
+
+test('get invoice prefix attribute', function () {
+    $invoice = Invoice::factory()->create();
+
+    $num = $invoice->getInvoiceNumAttribute();
+
+    $prefix = $invoice->getInvoicePrefixAttribute();
+
+    $this->assertEquals($prefix.'-'.$num, $invoice['invoice_number']);
+});
+
+test('get invoice num attribute', function () {
+    $invoice = Invoice::factory()->create();
+
+    $num = $invoice->getInvoiceNumAttribute();
+
+    $prefix = $invoice->getInvoicePrefixAttribute();
+
+    $this->assertEquals($prefix.'-'.$num, $invoice['invoice_number']);
+});
+
 
 test('get previous status', function () {
     $invoice = Invoice::factory()->create();
 
     $status = $invoice->getPreviousStatus();
 
-    $this->assertEquals('DRAFT', $status);
+    $this->assertEquals('OVERDUE', $status);
 });
 
 
@@ -62,7 +107,7 @@ test('create invoice', function () {
     $invoice['taxes'] = [];
     array_push($invoice['taxes'], Tax::factory()->raw());
 
-    $request = new InvoicesRequest();
+    $request = new Request();
 
     $request->replace($invoice);
 
@@ -88,7 +133,7 @@ test('create invoice', function () {
         'tax' => $invoice['tax'],
         'discount' => $invoice['discount'],
         'notes' => $invoice['notes'],
-        'customer_id' => $invoice['customer_id'],
+        'user_id' => $invoice['user_id'],
         'template_name' => $invoice['template_name'],
     ]);
 });
@@ -112,7 +157,7 @@ test('update invoice', function () {
     array_push($newInvoice['items'], $item);
     array_push($newInvoice['taxes'], $tax);
 
-    $request = new InvoicesRequest();
+    $request = new Request();
 
     $request->replace($newInvoice);
 
@@ -139,7 +184,7 @@ test('update invoice', function () {
         'tax' => $newInvoice['tax'],
         'discount' => $newInvoice['discount'],
         'notes' => $newInvoice['notes'],
-        'customer_id' => $newInvoice['customer_id'],
+        'user_id' => $newInvoice['user_id'],
         'template_name' => $newInvoice['template_name'],
     ]);
 });
@@ -155,11 +200,11 @@ test('create items', function () {
 
     array_push($items, $item);
 
-    $request = new InvoicesRequest();
+    $request = new Request();
 
     $request->replace(['items' => $items ]);
 
-    Invoice::createItems($invoice, $request->items);
+    Invoice::createItems($invoice, $request);
 
     $this->assertDatabaseHas('invoice_items', [
         'invoice_id' => $invoice->id,
@@ -186,7 +231,7 @@ test('create taxes', function () {
 
     $request->replace(['taxes' => $taxes ]);
 
-    Invoice::createTaxes($invoice, $request->taxes);
+    Invoice::createTaxes($invoice, $request);
 
     $this->assertDatabaseHas('taxes', [
         'invoice_id' => $invoice->id,

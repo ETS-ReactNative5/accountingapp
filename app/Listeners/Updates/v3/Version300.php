@@ -11,7 +11,6 @@ use Crater\Models\Setting;
 use Crater\Models\Unit;
 use Crater\Models\User;
 use Illuminate\Database\Schema\Blueprint;
-use Vinkla\Hashids\Facades\Hashids;
 
 class Version300 extends Listener
 {
@@ -131,7 +130,7 @@ class Version300 extends Listener
 
         if ($payments) {
             foreach ($payments as $payment) {
-                $payment->unique_hash = Hashids::connection(Payment::class)->encode($payment->id);
+                $payment->unique_hash = str_random(60);
                 $payment->save();
 
                 $paymentMethod = PaymentMethod::where('name', $payment->payment_mode)

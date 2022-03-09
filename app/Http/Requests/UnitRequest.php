@@ -27,29 +27,17 @@ class UnitRequest extends FormRequest
         $data = [
             'name' => [
                 'required',
-                Rule::unique('units')
-                    ->where('company_id', $this->header('company')),
+                'unique:units,name',
             ],
         ];
 
         if ($this->getMethod() == 'PUT') {
             $data['name'] = [
                 'required',
-                Rule::unique('units')
-                    ->ignore($this->route('unit'), 'id')
-                    ->where('company_id', $this->header('company')),
+                Rule::unique('units')->ignore($this->route('unit'), 'id'),
             ];
         }
 
         return $data;
-    }
-
-    public function getUnitPayload()
-    {
-        return collect($this->validated())
-            ->merge([
-                'company_id' => $this->header('company')
-            ])
-            ->toArray();
     }
 }

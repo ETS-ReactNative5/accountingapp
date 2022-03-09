@@ -32,13 +32,4 @@ class ExpenseCategoryRequest extends FormRequest
             ],
         ];
     }
-
-    public function getExpenseCategoryPayload()
-    {
-        return collect($this->validated())
-            ->merge([
-                'company_id' => $this->header('company')
-            ])
-            ->toArray();
-    }
 }
