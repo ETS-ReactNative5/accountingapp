@@ -42,6 +42,9 @@
         "phpunit/phpunit": "^9.0"
     },
     "autoload": {
+        "classmap": [
+            "app/database/migrations"
+        ],
         "psr-4": {
             "Crater\\": "app/",
             "Database\\Factories\\": "database/factories/",
