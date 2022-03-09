@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pest\PendingObjects;
 
-use Closure;
+use Pest\Exceptions\InvalidUsesPath;
 use Pest\TestSuite;
 
 /**
@@ -12,20 +12,6 @@ use Pest\TestSuite;
  */
 final class UsesCall
 {
-    /**
-     * Contains a global before each hook closure to be executed.
-     *
-     * Array indices here matter. They are mapped as follows:
-     *
-     * - `0` => `beforeAll`
-     * - `1` => `beforeEach`
-     * - `2` => `afterEach`
-     * - `3` => `afterAll`
-     *
-     * @var array<int, Closure>
-     */
-    private $hooks = [];
-
     /**
      * Holds the class and traits.
      *
@@ -68,7 +54,7 @@ final class UsesCall
 
     /**
      * The directories or file where the
-     * class or traits should be used.
+     * class or trais should be used.
      */
     public function in(string ...$targets): void
     {
@@ -91,13 +77,14 @@ final class UsesCall
                 ]);
         }, $targets);
 
-        $this->targets = array_reduce($targets, function (array $accumulator, string $target): array {
-            if (is_dir($target) || file_exists($target)) {
-                $accumulator[] = (string) realpath($target);
+        $this->targets = array_map(function ($target): string {
+            $isValid = is_dir($target) || file_exists($target);
+            if (!$isValid) {
+                throw new InvalidUsesPath($target);
             }
 
-            return $accumulator;
-        }, []);
+            return (string) realpath($target);
+        }, $targets);
     }
 
     /**
@@ -111,55 +98,10 @@ final class UsesCall
     }
 
     /**
-     * Sets the global beforeAll test hook.
-     */
-    public function beforeAll(Closure $hook): UsesCall
-    {
-        $this->hooks[0] = $hook;
-
-        return $this;
-    }
-
-    /**
-     * Sets the global beforeEach test hook.
-     */
-    public function beforeEach(Closure $hook): UsesCall
-    {
-        $this->hooks[1] = $hook;
-
-        return $this;
-    }
-
-    /**
-     * Sets the global afterEach test hook.
-     */
-    public function afterEach(Closure $hook): UsesCall
-    {
-        $this->hooks[2] = $hook;
-
-        return $this;
-    }
-
-    /**
-     * Sets the global afterAll test hook.
-     */
-    public function afterAll(Closure $hook): UsesCall
-    {
-        $this->hooks[3] = $hook;
-
-        return $this;
-    }
-
-    /**
      * Dispatch the creation of uses.
      */
     public function __destruct()
     {
-        TestSuite::getInstance()->tests->use(
-            $this->classAndTraits,
-            $this->groups,
-            $this->targets,
-            $this->hooks,
-        );
+        TestSuite::getInstance()->tests->use($this->classAndTraits, $this->groups, $this->targets);
     }
 }

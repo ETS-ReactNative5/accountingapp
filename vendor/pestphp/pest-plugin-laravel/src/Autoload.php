@@ -7,7 +7,6 @@
         'Container.php',
         'Database.php',
         'ExceptionHandling.php',
-        'Expectations.php',
         'Http.php',
         'MocksApplicationServices.php',
         'Session.php',

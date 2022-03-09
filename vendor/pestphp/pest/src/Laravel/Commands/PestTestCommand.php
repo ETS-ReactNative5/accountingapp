@@ -8,8 +8,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Pest\Exceptions\InvalidConsoleArgument;
 use Pest\Support\Str;
-use function Pest\testDirectory;
-use Pest\TestSuite;
 
 /**
  * @internal
@@ -21,7 +19,7 @@ final class PestTestCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'pest:test {name : The name of the file} {--unit : Create a unit test} {--dusk : Create a Dusk test} {--test-directory=tests : The name of the tests directory} {--force : Overwrite the existing test file with the same name}';
+    protected $signature = 'pest:test {name : The name of the file} {--unit : Create a unit test}';
 
     /**
      * The console command description.
@@ -35,16 +33,12 @@ final class PestTestCommand extends Command
      */
     public function handle(): void
     {
-        /* @phpstan-ignore-next-line */
-        TestSuite::getInstance(base_path(), $this->option('test-directory'));
-
         /** @var string $name */
         $name = $this->argument('name');
 
-        $type = ((bool) $this->option('unit')) ? 'Unit' : (((bool) $this->option('dusk')) ? 'Browser' : 'Feature');
+        $type = ((bool) $this->option('unit')) ? 'Unit' : 'Feature';
 
-        $relativePath = sprintf(
-            testDirectory('%s/%s.php'),
+        $relativePath = sprintf('tests/%s/%s.php',
             $type,
             ucfirst($name)
         );
@@ -56,7 +50,7 @@ final class PestTestCommand extends Command
             File::makeDirectory(dirname($target), 0777, true, true);
         }
 
-        if (File::exists($target) && !(bool) $this->option('force')) {
+        if (File::exists($target)) {
             throw new InvalidConsoleArgument(sprintf('%s already exist', $target));
         }
 

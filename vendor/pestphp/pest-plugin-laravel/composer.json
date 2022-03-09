@@ -8,13 +8,13 @@
         "unit",
         "test",
         "testing",
-        "laravel"
+        "plugin"
     ],
     "license": "MIT",
     "require": {
         "php": "^7.3 || ^8.0",
         "laravel/framework": "^7.0 || ^8.0",
-        "pestphp/pest": "^1.7"
+        "pestphp/pest": "^0.3"
     },
     "autoload": {
         "psr-4": {
@@ -30,7 +30,7 @@
         }
     },
     "require-dev": {
-        "orchestra/testbench": "^5.12.1 || ^6.7.2",
+        "orchestra/testbench": "^5.2 || ^6.0",
         "pestphp/pest-dev-tools": "dev-master"
     },
     "minimum-stability": "dev",
@@ -40,8 +40,8 @@
         "preferred-install": "dist"
     },
     "scripts": {
-        "lint": "php-cs-fixer fix -v",
-        "test:lint": "php-cs-fixer fix -v --dry-run",
+        "lint": "rector process src && php-cs-fixer fix -v",
+        "test:lint": "php-cs-fixer fix -v --dry-run && rector process src --dry-run",
         "test:types": "phpstan analyse --ansi",
         "test:unit": "pest --colors=always",
         "test": [
@@ -52,7 +52,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "1.x-dev"
+            "dev-master": "0.4.x-dev"
         }
     }
 }

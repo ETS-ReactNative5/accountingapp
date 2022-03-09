@@ -51,34 +51,36 @@ final class Datasets
     /**
      * Resolves the current dataset to an array value.
      *
-     * @param array<Closure|iterable<int|string, mixed>|string> $datasets
+     * @param Traversable<int|string, mixed>|Closure|iterable<int|string, mixed>|string|null $data
      *
      * @return array<string, mixed>
      */
-    public static function resolve(string $description, array $datasets): array
+    public static function resolve(string $description, $data): array
     {
         /* @phpstan-ignore-next-line */
-        if (empty($datasets)) {
+        if (is_null($data) || empty($data)) {
             return [$description => []];
         }
 
-        $datasets = self::processDatasets($datasets);
+        if (is_string($data)) {
+            $data = self::get($data);
+        }
 
-        $datasetCombinations = self::getDataSetsCombinations($datasets);
+        if (is_callable($data)) {
+            $data = call_user_func($data);
+        }
+
+        if ($data instanceof Traversable) {
+            $data = iterator_to_array($data);
+        }
 
         $dataSetDescriptions = [];
         $dataSetValues       = [];
 
-        foreach ($datasetCombinations as $datasetCombination) {
-            $partialDescriptions = [];
-            $values              = [];
+        foreach ($data as $key => $values) {
+            $values = is_array($values) ? $values : [$values];
 
-            foreach ($datasetCombination as $dataset_data) {
-                $partialDescriptions[] = $dataset_data['label'];
-                $values                = array_merge($values, $dataset_data['values']);
-            }
-
-            $dataSetDescriptions[] = $description . ' with ' . implode(' / ', $partialDescriptions);
+            $dataSetDescriptions[] = $description . self::getDataSetDescription($key, $values);
             $dataSetValues[]       = $values;
         }
 
@@ -102,65 +104,6 @@ final class Datasets
     }
 
     /**
-     * @param array<Closure|iterable<int|string, mixed>|string> $datasets
-     *
-     * @return array<array>
-     */
-    private static function processDatasets(array $datasets): array
-    {
-        $processedDatasets = [];
-
-        foreach ($datasets as $index => $data) {
-            $processedDataset = [];
-
-            if (is_string($data)) {
-                $datasets[$index] = self::get($data);
-            }
-
-            if (is_callable($datasets[$index])) {
-                $datasets[$index] = call_user_func($datasets[$index]);
-            }
-
-            if ($datasets[$index] instanceof Traversable) {
-                $datasets[$index] = iterator_to_array($datasets[$index]);
-            }
-
-            foreach ($datasets[$index] as $key => $values) {
-                $values             = is_array($values) ? $values : [$values];
-                $processedDataset[] = [
-                    'label'  => self::getDataSetDescription($key, $values),
-                    'values' => $values,
-                ];
-            }
-
-            $processedDatasets[] = $processedDataset;
-        }
-
-        return $processedDatasets;
-    }
-
-    /**
-     * @param array<array> $combinations
-     *
-     * @return array<array>
-     */
-    private static function getDataSetsCombinations(array $combinations): array
-    {
-        $result = [[]];
-        foreach ($combinations as $index => $values) {
-            $tmp = [];
-            foreach ($result as $resultItem) {
-                foreach ($values as $value) {
-                    $tmp[] = array_merge($resultItem, [$index => $value]);
-                }
-            }
-            $result = $tmp;
-        }
-
-        return $result;
-    }
-
-    /**
      * @param int|string        $key
      * @param array<int, mixed> $data
      */
@@ -168,10 +111,8 @@ final class Datasets
     {
         $exporter = new Exporter();
 
-        if (is_int($key)) {
-            return \sprintf('(%s)', $exporter->shortenedRecursiveExport($data));
-        }
+        $nameInsert = is_string($key) ? \sprintf('data set "%s" ', $key) : '';
 
-        return \sprintf('data set "%s"', $key);
+        return \sprintf(' with %s(%s)', $nameInsert, $exporter->shortenedRecursiveExport($data));
     }
 }

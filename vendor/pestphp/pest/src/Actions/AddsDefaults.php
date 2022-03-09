@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Pest\Actions;
 
 use NunoMaduro\Collision\Adapters\Phpunit\Printer;
-use Pest\Logging\JUnit;
-use Pest\Logging\TeamCity;
+use Pest\TeamCity;
 use PHPUnit\TextUI\DefaultResultPrinter;
 
 /**
@@ -30,15 +29,7 @@ final class AddsDefaults
         }
 
         if ($arguments[self::PRINTER] === \PHPUnit\Util\Log\TeamCity::class) {
-            $arguments[self::PRINTER] = new TeamCity(null, $arguments['verbose'] ?? false, $arguments['colors'] ?? DefaultResultPrinter::COLOR_ALWAYS);
-        }
-
-        // Load our junit logger instead.
-        if (array_key_exists('junitLogfile', $arguments)) {
-            $arguments['listeners'][] = new JUnit(
-                $arguments['junitLogfile']
-            );
-            unset($arguments['junitLogfile']);
+            $arguments[self::PRINTER] = new TeamCity($arguments['verbose'] ?? false, $arguments['colors'] ?? DefaultResultPrinter::COLOR_ALWAYS);
         }
 
         return $arguments;

@@ -17,21 +17,11 @@ final class HigherOrderMessageCollection
     /**
      * Adds a new higher order message to the collection.
      *
-     * @param array<int, mixed>|null $arguments
+     * @param array<int, mixed> $arguments
      */
-    public function add(string $filename, int $line, string $name, array $arguments = null): void
+    public function add(string $filename, int $line, string $methodName, array $arguments): void
     {
-        $this->messages[] = new HigherOrderMessage($filename, $line, $name, $arguments);
-    }
-
-    /**
-     * Adds a new higher order message to the collection if the callable condition is does not return false.
-     *
-     * @param array<int, mixed>|null $arguments
-     */
-    public function addWhen(callable $condition, string $filename, int $line, string $name, array $arguments = null): void
-    {
-        $this->messages[] = (new HigherOrderMessage($filename, $line, $name, $arguments))->when($condition);
+        $this->messages[] = new HigherOrderMessage($filename, $line, $methodName, $arguments);
     }
 
     /**
@@ -52,21 +42,5 @@ final class HigherOrderMessageCollection
         foreach ($this->messages as $message) {
             $message->call($target);
         }
-    }
-
-    /**
-     * Count the number of messages with the given name.
-     *
-     * @param string $name A higher order message name (usually a method name)
-     */
-    public function count(string $name): int
-    {
-        return array_reduce(
-            $this->messages,
-            static function (int $total, HigherOrderMessage $message) use ($name): int {
-                return $total + (int) ($name === $message->name);
-            },
-            0,
-        );
     }
 }

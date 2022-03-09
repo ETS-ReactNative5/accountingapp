@@ -2,8 +2,8 @@
 
 namespace JMac\Testing\Traits;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\Assert as PHPUnitAssert;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
@@ -113,7 +113,11 @@ trait AdditionalAssertions
 
     public function assertValidationRules(array $expected, array $actual)
     {
-        \Illuminate\Testing\Assert::assertArraySubset($this->normalizeRules($expected), $this->normalizeRules($actual));
+        if (class_exists(\Illuminate\Testing\Assert::class)) {
+            \Illuminate\Testing\Assert::assertArraySubset($this->normalizeRules($expected), $this->normalizeRules($actual));
+        } else {
+            \Illuminate\Foundation\Testing\Assert::assertArraySubset($this->normalizeRules($expected), $this->normalizeRules($actual));
+        }
     }
 
     public function assertExactValidationRules(array $expected, array $actual)
@@ -173,6 +177,14 @@ trait AdditionalAssertions
                 }
             }
         }
+    }
+
+    public function assertNotSoftDeleted(Model $model)
+    {
+        return $this->assertDatabaseHas($model->getTable(), [
+            $model->getKeyName() => $model->getKey(),
+            'deleted_at' => null,
+        ]);
     }
 
     private function normalizeRules(array $rules)

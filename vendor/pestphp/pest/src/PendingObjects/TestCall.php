@@ -7,15 +7,14 @@ namespace Pest\PendingObjects;
 use Closure;
 use Pest\Factories\TestCaseFactory;
 use Pest\Support\Backtrace;
-use Pest\Support\HigherOrderCallables;
 use Pest\Support\NullClosure;
 use Pest\TestSuite;
 use SebastianBergmann\Exporter\Exporter;
 
 /**
- * @internal
+ * @method \Pest\Expectation expect(mixed $value)
  *
- * @mixin HigherOrderCallables
+ * @internal
  */
 final class TestCall
 {
@@ -59,15 +58,11 @@ final class TestCall
     /**
      * Asserts that the test throws the given `$exceptionClass` when called.
      */
-    public function throws(string $exception, string $exceptionMessage = null): TestCall
+    public function throws(string $exceptionClass, string $exceptionMessage = null): TestCall
     {
-        if (class_exists($exception)) {
-            $this->testCaseFactory
-                ->proxies
-                ->add(Backtrace::file(), Backtrace::line(), 'expectException', [$exception]);
-        } else {
-            $exceptionMessage = $exception;
-        }
+        $this->testCaseFactory
+            ->proxies
+            ->add(Backtrace::file(), Backtrace::line(), 'expectException', [$exceptionClass]);
 
         if (is_string($exceptionMessage)) {
             $this->testCaseFactory
@@ -79,36 +74,14 @@ final class TestCall
     }
 
     /**
-     * Asserts that the test throws the given `$exceptionClass` when called if the given condition is true.
-     *
-     * @param (callable(): bool)|bool $condition
-     */
-    public function throwsIf($condition, string $exception, string $exceptionMessage = null): TestCall
-    {
-        $condition = is_callable($condition)
-            ? $condition
-            : static function () use ($condition): bool {
-                return (bool) $condition; // @phpstan-ignore-line
-            };
-
-        if ($condition()) {
-            return $this->throws($exception, $exceptionMessage);
-        }
-
-        return $this;
-    }
-
-    /**
      * Runs the current test multiple times with
      * each item of the given `iterable`.
      *
-     * @param array<\Closure|iterable<int|string, mixed>|string> $data
+     * @param \Closure|iterable<int|string, mixed>|string $data
      */
-    public function with(...$data): TestCall
+    public function with($data): TestCall
     {
-        foreach ($data as $dataset) {
-            $this->testCaseFactory->datasets[] = $dataset;
-        }
+        $this->testCaseFactory->dataset = $data;
 
         return $this;
     }
@@ -160,7 +133,7 @@ final class TestCall
 
         $condition = is_callable($condition)
             ? $condition
-            : function () use ($condition) {
+            : function () use ($condition) { /* @phpstan-ignore-line */
                 return $condition;
             };
 
@@ -168,22 +141,13 @@ final class TestCall
             ? $conditionOrMessage
             : $message;
 
-        /** @var callable(): bool $condition */
-        $condition = $condition->bindTo(null);
-
-        $this->testCaseFactory
-            ->chains
-            ->addWhen($condition, Backtrace::file(), Backtrace::line(), 'markTestSkipped', [$message]);
+        if ($condition() !== false) {
+            $this->testCaseFactory
+                ->chains
+                ->add(Backtrace::file(), Backtrace::line(), 'markTestSkipped', [$message]);
+        }
 
         return $this;
-    }
-
-    /**
-     * Saves the property accessors to be used on the target.
-     */
-    public function __get(string $name): self
-    {
-        return $this->addChain($name);
     }
 
     /**
@@ -192,16 +156,6 @@ final class TestCall
      * @param array<int, mixed> $arguments
      */
     public function __call(string $name, array $arguments): self
-    {
-        return $this->addChain($name, $arguments);
-    }
-
-    /**
-     * Add a chain to the test case factory. Omitting the arguments will treat it as a property accessor.
-     *
-     * @param array<int, mixed>|null $arguments
-     */
-    private function addChain(string $name, array $arguments = null): self
     {
         $this->testCaseFactory
             ->chains
@@ -212,9 +166,7 @@ final class TestCall
             if ($this->testCaseFactory->description !== null) {
                 $this->testCaseFactory->description .= ' → ';
             }
-            $this->testCaseFactory->description .= $arguments === null
-                ? $name
-                : sprintf('%s %s', $name, $exporter->shortenedRecursiveExport($arguments));
+            $this->testCaseFactory->description .= sprintf('%s %s', $name, $exporter->shortenedRecursiveExport($arguments));
         }
 
         return $this;

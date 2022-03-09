@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Pest\Factories;
 
 use Closure;
-use ParseError;
 use Pest\Concerns;
 use Pest\Contracts\HasPrintableTestCaseName;
 use Pest\Datasets;
 use Pest\Exceptions\ShouldNotHappen;
 use Pest\Support\HigherOrderMessageCollection;
-use Pest\Support\Str;
+use Pest\Support\NullClosure;
 use Pest\TestSuite;
-use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * @internal
@@ -62,9 +59,9 @@ final class TestCaseFactory
     /**
      * Holds the dataset, if any.
      *
-     * @var array<Closure|iterable<int|string, mixed>|string>
+     * @var Closure|iterable<int|string, mixed>|string|null
      */
-    public $datasets = [];
+    public $dataset;
 
     /**
      * The FQN of the test case class.
@@ -79,8 +76,7 @@ final class TestCaseFactory
      * @var array <int, string>
      */
     public $traits = [
-        Concerns\Testable::class,
-        Concerns\Expectable::class,
+        Concerns\TestCase::class,
     ];
 
     /**
@@ -114,11 +110,7 @@ final class TestCaseFactory
     {
         $this->filename    = $filename;
         $this->description = $description;
-        $this->test        = $closure ?? function (): void {
-            if (Assert::getCount() === 0) {
-                self::markTestIncomplete(); // @phpstan-ignore-line
-            }
-        };
+        $this->test        = $closure ?? NullClosure::create();
 
         $this->factoryProxies = new HigherOrderMessageCollection();
         $this->proxies        = new HigherOrderMessageCollection();
@@ -147,7 +139,6 @@ final class TestCaseFactory
             $proxies->proxy($this);
             $chains->chain($this);
 
-            /* @phpstan-ignore-next-line */
             return call_user_func(Closure::bind($factoryTest, $this, get_class($this)), ...func_get_args());
         };
 
@@ -160,7 +151,7 @@ final class TestCaseFactory
             return $testCase;
         };
 
-        $datasets = Datasets::resolve($this->description, $this->datasets);
+        $datasets = Datasets::resolve($this->description, $this->dataset);
 
         return array_map($createTest, array_keys($datasets), $datasets);
     }
@@ -177,7 +168,7 @@ final class TestCaseFactory
             }, $filename);
         }
 
-        $filename     = str_replace('\\\\', '\\', addslashes((string) realpath($filename)));
+        $filename     = (string) realpath($filename);
         $rootPath     = TestSuite::getInstance()->rootPath;
         $relativePath = str_replace($rootPath . DIRECTORY_SEPARATOR, '', $filename);
         $relativePath = dirname(ucfirst($relativePath)) . DIRECTORY_SEPARATOR . basename($relativePath, '.php');
@@ -185,12 +176,8 @@ final class TestCaseFactory
 
         // Strip out any %-encoded octets.
         $relativePath = (string) preg_replace('|%[a-fA-F0-9][a-fA-F0-9]|', '', $relativePath);
-        // Remove escaped quote sequences (maintain namespace)
-        $relativePath = str_replace(array_map(function (string $quote): string {
-            return sprintf('\\%s', $quote);
-        }, ['\'', '"']), '', $relativePath);
         // Limit to A-Z, a-z, 0-9, '_', '-'.
-        $relativePath = (string) preg_replace('/[^A-Za-z0-9\\\\]/', '', $relativePath);
+        $relativePath = (string) preg_replace('/[^A-Za-z0-9.\\\]/', '', $relativePath);
 
         $classFQN = 'P\\' . $relativePath;
         if (class_exists($classFQN)) {
@@ -207,34 +194,16 @@ final class TestCaseFactory
         $namespace = implode('\\', $partsFQN);
         $baseClass = sprintf('\%s', $this->class);
 
-        if ('' === trim($className)) {
-            $className = 'InvalidTestName' . Str::random();
-            $classFQN .= $className;
-        }
+        eval("
+            namespace $namespace;
 
-        try {
-            eval("
-                namespace $namespace;
+            final class $className extends $baseClass implements $hasPrintableTestCaseClassFQN {
+                $traitsCode
 
-                final class $className extends $baseClass implements $hasPrintableTestCaseClassFQN {
-                    $traitsCode
-
-                    private static \$__filename = '$filename';
-                }
-            ");
-        } catch (ParseError $caught) {
-            throw new RuntimeException(sprintf('Unable to create test case for test file at %s', $filename), 1, $caught);
-        }
+                private static \$__filename = '$filename';
+            }
+        ");
 
         return $classFQN;
-    }
-
-    /**
-     * Determine if the test case will receive argument input from Pest, or not.
-     */
-    public function receivesArguments(): bool
-    {
-        return count($this->datasets) > 0
-            || $this->factoryProxies->count('addDependencies') > 0;
     }
 }

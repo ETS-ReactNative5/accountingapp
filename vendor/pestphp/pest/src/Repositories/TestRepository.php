@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Pest\Repositories;
 
-use Closure;
-use Pest\Exceptions\DatasetMissing;
 use Pest\Exceptions\ShouldNotHappen;
 use Pest\Exceptions\TestAlreadyExist;
 use Pest\Exceptions\TestCaseAlreadyInUse;
 use Pest\Exceptions\TestCaseClassOrTraitNotFound;
 use Pest\Factories\TestCaseFactory;
-use Pest\Plugins\Environment;
-use Pest\Support\Reflection;
 use Pest\Support\Str;
 use Pest\TestSuite;
 use PHPUnit\Framework\TestCase;
@@ -23,17 +19,12 @@ use PHPUnit\Framework\TestCase;
 final class TestRepository
 {
     /**
-     * @var non-empty-string
-     */
-    private const SEPARATOR = '>>>';
-
-    /**
      * @var array<string, TestCaseFactory>
      */
     private $state = [];
 
     /**
-     * @var array<string, array<int, array<int, string|Closure>>>
+     * @var array<string, array<int, array<int, string>>>
      */
     private $uses = [];
 
@@ -46,20 +37,6 @@ final class TestRepository
     }
 
     /**
-     * Returns the filename of each test that should be executed in the suite.
-     *
-     * @return array<int, string>
-     */
-    public function getFilenames(): array
-    {
-        $testsWithOnly = $this->testsUsingOnly();
-
-        return array_values(array_map(function (TestCaseFactory $factory): string {
-            return $factory->filename;
-        }, count($testsWithOnly) > 0 ? $testsWithOnly : $this->state));
-    }
-
-    /**
      * Calls the given callable foreach test case.
      */
     public function build(TestSuite $testSuite, callable $each): void
@@ -69,13 +46,12 @@ final class TestRepository
         };
 
         foreach ($this->uses as $path => $uses) {
-            [$classOrTraits, $groups, $hooks] = $uses;
-
-            $setClassName = function (TestCaseFactory $testCase, string $key) use ($path, $classOrTraits, $groups, $startsWith, $hooks): void {
-                [$filename] = explode(self::SEPARATOR, $key);
+            [$classOrTraits, $groups] = $uses;
+            $setClassName             = function (TestCaseFactory $testCase, string $key) use ($path, $classOrTraits, $groups, $startsWith): void {
+                [$filename] = explode('@', $key);
 
                 if ((!is_dir($path) && $filename === $path) || (is_dir($path) && $startsWith($filename, $path))) {
-                    foreach ($classOrTraits as $class) { /** @var string $class */
+                    foreach ($classOrTraits as $class) {
                         if (class_exists($class)) {
                             if ($testCase->class !== TestCase::class) {
                                 throw new TestCaseAlreadyInUse($testCase->class, $class, $filename);
@@ -86,12 +62,10 @@ final class TestRepository
                         }
                     }
 
-                    // IDEA: Consider set the real lines on these.
-                    $testCase->factoryProxies->add($filename, 0, 'addGroups', [$groups]);
-                    $testCase->factoryProxies->add($filename, 0, 'addBeforeAll', [$hooks[0] ?? null]);
-                    $testCase->factoryProxies->add($filename, 0, 'addBeforeEach', [$hooks[1] ?? null]);
-                    $testCase->factoryProxies->add($filename, 0, 'addAfterEach', [$hooks[2] ?? null]);
-                    $testCase->factoryProxies->add($filename, 0, 'addAfterAll', [$hooks[3] ?? null]);
+                    $testCase
+                        ->factoryProxies
+                        // Consider set the real line here.
+                        ->add($filename, 0, 'addGroups', [$groups]);
                 }
             };
 
@@ -100,12 +74,14 @@ final class TestRepository
             }
         }
 
-        $onlyState = $this->testsUsingOnly();
+        $onlyState = array_filter($this->state, function ($testFactory): bool {
+            return $testFactory->only;
+        });
 
         $state = count($onlyState) > 0 ? $onlyState : $this->state;
 
         foreach ($state as $testFactory) {
-            /** @var TestCaseFactory $testFactory */
+            /* @var TestCaseFactory $testFactory */
             $tests = $testFactory->build($testSuite);
             foreach ($tests as $test) {
                 $each($test);
@@ -114,30 +90,13 @@ final class TestRepository
     }
 
     /**
-     * Return all tests that have called the only method.
-     *
-     * @return array<TestCaseFactory>
-     */
-    private function testsUsingOnly(): array
-    {
-        if (Environment::name() === Environment::CI) {
-            return [];
-        }
-
-        return array_filter($this->state, function ($testFactory): bool {
-            return $testFactory->only;
-        });
-    }
-
-    /**
      * Uses the given `$testCaseClass` on the given `$paths`.
      *
-     * @param array<int, string>  $classOrTraits
-     * @param array<int, string>  $groups
-     * @param array<int, string>  $paths
-     * @param array<int, Closure> $hooks
+     * @param array<int, string> $classOrTraits
+     * @param array<int, string> $groups
+     * @param array<int, string> $paths
      */
-    public function use(array $classOrTraits, array $groups, array $paths, array $hooks): void
+    public function use(array $classOrTraits, array $groups, array $paths): void
     {
         foreach ($classOrTraits as $classOrTrait) {
             if (!class_exists($classOrTrait) && !trait_exists($classOrTrait)) {
@@ -150,10 +109,9 @@ final class TestRepository
                 $this->uses[$path] = [
                     array_merge($this->uses[$path][0], $classOrTraits),
                     array_merge($this->uses[$path][1], $groups),
-                    $this->uses[$path][2] + $hooks, // NOTE: array_merge will destroy numeric indices
                 ];
             } else {
-                $this->uses[$path] = [$classOrTraits, $groups, $hooks];
+                $this->uses[$path] = [$classOrTraits, $groups];
             }
         }
     }
@@ -167,18 +125,10 @@ final class TestRepository
             throw ShouldNotHappen::fromMessage('Trying to create a test without description.');
         }
 
-        if (array_key_exists(sprintf('%s%s%s', $test->filename, self::SEPARATOR, $test->description), $this->state)) {
+        if (array_key_exists(sprintf('%s@%s', $test->filename, $test->description), $this->state)) {
             throw new TestAlreadyExist($test->filename, $test->description);
         }
 
-        if (!$test->receivesArguments()) {
-            $arguments = Reflection::getFunctionArguments($test->test);
-
-            if (count($arguments) > 0) {
-                throw new DatasetMissing($test->filename, $test->description, $arguments);
-            }
-        }
-
-        $this->state[sprintf('%s%s%s', $test->filename, self::SEPARATOR, $test->description)] = $test;
+        $this->state[sprintf('%s@%s', $test->filename, $test->description)] = $test;
     }
 }
