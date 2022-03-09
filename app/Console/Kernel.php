@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Console;
+namespace Crater\Console;
 
+use Crater\Models\CompanySetting;
+use Crater\Models\RecurringInvoice;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,28 +14,37 @@ class Kernel extends ConsoleKernel
      *
      * @var array
      */
-    protected $commands = [];
+    protected $commands = [
+        Commands\ResetApp::class,
+        Commands\UpdateCommand::class,
+        Commands\CreateTemplateCommand::class,
+        Commands\InstallModuleCommand::class,
+    ];
 
     /**
      * Define the application's command schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @param  \Illuminate\Console\Scheduling\Schedule $schedule
      * @return void
      */
     protected function schedule(Schedule $schedule)
     {
-        // Not installed yet
-        if (!config('app.installed')) {
-            return;
+        if (\Storage::disk('local')->has('database_created')) {
+            $schedule->command('check:invoices:status')
+            ->daily();
+
+            $schedule->command('check:estimates:status')
+            ->daily();
+
+            $recurringInvoices = RecurringInvoice::where('status', 'ACTIVE')->get();
+            foreach ($recurringInvoices as $recurringInvoice) {
+                $timeZone = CompanySetting::getSetting('time_zone', $recurringInvoice->company_id);
+
+                $schedule->call(function () use ($recurringInvoice) {
+                    $recurringInvoice->generateInvoice();
+                })->cron($recurringInvoice->frequency)->timezone($timeZone);
+            }
         }
-
-        $schedule_time = config('app.schedule_time');
-
-        $schedule->command('report:cache')->everySixHours();
-        $schedule->command('reminder:invoice')->dailyAt($schedule_time);
-        $schedule->command('reminder:bill')->dailyAt($schedule_time);
-        $schedule->command('recurring:check')->dailyAt($schedule_time);
-        $schedule->command('storage-temp:clear')->dailyAt('17:00');
     }
 
     /**
@@ -43,18 +54,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
+        $this->load(__DIR__.'/Commands');
         require base_path('routes/console.php');
-
-        $this->load(__DIR__ . '/Commands');
-    }
-
-    /**
-     * Get the timezone that should be used by default for scheduled events.
-     *
-     * @return \DateTimeZone|string|null
-     */
-    protected function scheduleTimezone()
-    {
-        return config('app.timezone');
     }
 }

@@ -31,7 +31,7 @@ return [
     |
     */
 
-    'lifetime' => env('SESSION_LIFETIME', 30),
+    'lifetime' => env('SESSION_LIFETIME', 120),
 
     'expire_on_close' => false,
 
@@ -92,11 +92,9 @@ return [
     | Session Cache Store
     |--------------------------------------------------------------------------
     |
-    | While using one of the framework's cache driven session backends you may
+    | When using the "apc", "memcached", or "dynamodb" session drivers you may
     | list a cache store that should be used for these sessions. This value
     | must match with one of the application's configured cache "stores".
-    |
-    | Affects: "apc", "dynamodb", "memcached", "redis"
     |
     */
 
@@ -126,7 +124,10 @@ return [
     |
     */
 
-    'cookie' => env('SESSION_COOKIE', Str::slug(env('APP_NAME', 'laravel'), '_') . '_session'),
+    'cookie' => env(
+        'SESSION_COOKIE',
+        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
+    ),
 
     /*
     |--------------------------------------------------------------------------

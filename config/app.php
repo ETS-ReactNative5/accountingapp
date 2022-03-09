@@ -12,18 +12,7 @@ return [
     | any other location as required by the application or its packages.
     */
 
-    'name' => env('APP_NAME', 'Akaunting'),
-
-    'installed' => (bool) env('APP_INSTALLED', false),
-
-    'schedule_time' => env('APP_SCHEDULE_TIME', '09:00'),
-
-    'eager_load' => (bool) env('APP_EAGER_LOAD', true),
-
-    'throttles' => [
-        'api' => env('APP_THROTTLES_API', '60'),
-        'import' => env('APP_THROTTLES_IMPORT', '1'),
-    ],
+    'name' => 'Crater',
 
     /*
     |--------------------------------------------------------------------------
@@ -36,7 +25,7 @@ return [
     |
     */
 
-    'env' => env('APP_ENV', 'local'),
+    'env' => env('APP_ENV', 'production'),
 
     /*
     |--------------------------------------------------------------------------
@@ -49,7 +38,7 @@ return [
     |
     */
 
-    'debug' => (bool) env('APP_DEBUG', false),
+    'debug' => env('APP_DEBUG', false),
 
     /*
     |--------------------------------------------------------------------------
@@ -62,9 +51,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', ''),
-
-    'asset_url' => env('ASSET_URL', null),
+    'url' => env('APP_URL', 'http://localhost'),
 
     /*
     |--------------------------------------------------------------------------
@@ -77,7 +64,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => 'UTC',
 
     /*
     |--------------------------------------------------------------------------
@@ -90,7 +77,7 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en-GB'),
+    'locale' => 'en',
 
     /*
     |--------------------------------------------------------------------------
@@ -103,7 +90,7 @@ return [
     |
     */
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en-GB'),
+    'fallback_locale' => 'en',
 
     /*
     |--------------------------------------------------------------------------
@@ -115,7 +102,7 @@ return [
     | localized telephone numbers, street address information and more.
     |
     */
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_GB'),
+    'faker_locale' => 'en_US',
 
     /*
     |--------------------------------------------------------------------------
@@ -128,9 +115,9 @@ return [
     |
     */
 
-    'key' => env('APP_KEY', 'JustAKeyForAkauntingInstallation'),
+    'key' => env('APP_KEY'),
 
-    'cipher' => env('APP_CIPHER', 'AES-256-CBC'),
+    'cipher' => 'AES-256-CBC',
 
     /*
     |--------------------------------------------------------------------------
@@ -170,28 +157,19 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
-
-        /*
-         * Package Service Providers...
-         */
-        Laravel\Tinker\TinkerServiceProvider::class,
+        Lavary\Menu\ServiceProvider::class,
 
         /*
          * Application Service Providers...
          */
-        App\Providers\App::class,
-        App\Providers\Auth::class,
-        App\Providers\Blade::class,
-        // App\Providers\Broadcast::class,
-        App\Providers\Event::class,
-        App\Providers\Form::class,
-        App\Providers\Macro::class,
-        App\Providers\Observer::class,
-        App\Providers\Queue::class,
-        App\Providers\Route::class,
-        App\Providers\Validation::class,
-        App\Providers\ViewComposer::class,
-
+        Crater\Providers\AppServiceProvider::class,
+        Crater\Providers\AuthServiceProvider::class,
+        Crater\Providers\BroadcastServiceProvider::class,
+        Crater\Providers\EventServiceProvider::class,
+        Crater\Providers\RouteServiceProvider::class,
+        Crater\Providers\DropboxServiceProvider::class,
+        Crater\Providers\ViewServiceProvider::class,
+        Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
     ],
 
     /*
@@ -208,44 +186,41 @@ return [
     'aliases' => [
 
         'App' => Illuminate\Support\Facades\App::class,
-        'Arr' => Illuminate\Support\Arr::class,
         'Artisan' => Illuminate\Support\Facades\Artisan::class,
         'Auth' => Illuminate\Support\Facades\Auth::class,
         'Blade' => Illuminate\Support\Facades\Blade::class,
-        'Broadcast' => Illuminate\Support\Facades\Broadcast::class,
         'Bus' => Illuminate\Support\Facades\Bus::class,
         'Cache' => Illuminate\Support\Facades\Cache::class,
         'Config' => Illuminate\Support\Facades\Config::class,
         'Cookie' => Illuminate\Support\Facades\Cookie::class,
         'Crypt' => Illuminate\Support\Facades\Crypt::class,
-        'Date' => App\Utilities\Date::class,
         'DB' => Illuminate\Support\Facades\DB::class,
         'Eloquent' => Illuminate\Database\Eloquent\Model::class,
         'Event' => Illuminate\Support\Facades\Event::class,
         'File' => Illuminate\Support\Facades\File::class,
         'Gate' => Illuminate\Support\Facades\Gate::class,
         'Hash' => Illuminate\Support\Facades\Hash::class,
-        'Http' => Illuminate\Support\Facades\Http::class,
         'Lang' => Illuminate\Support\Facades\Lang::class,
         'Log' => Illuminate\Support\Facades\Log::class,
         'Mail' => Illuminate\Support\Facades\Mail::class,
         'Notification' => Illuminate\Support\Facades\Notification::class,
         'Password' => Illuminate\Support\Facades\Password::class,
         'Queue' => Illuminate\Support\Facades\Queue::class,
-        'RateLimiter' => Illuminate\Support\Facades\RateLimiter::class,
         'Redirect' => Illuminate\Support\Facades\Redirect::class,
         'Redis' => Illuminate\Support\Facades\Redis::class,
+        'Http' => Illuminate\Support\Facades\Http::class,
         'Request' => Illuminate\Support\Facades\Request::class,
         'Response' => Illuminate\Support\Facades\Response::class,
         'Route' => Illuminate\Support\Facades\Route::class,
         'Schema' => Illuminate\Support\Facades\Schema::class,
         'Session' => Illuminate\Support\Facades\Session::class,
         'Storage' => Illuminate\Support\Facades\Storage::class,
-        'Str' => Illuminate\Support\Str::class,
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
-
+        'Flash' => Laracasts\Flash\Flash::class,
+        // 'JWTAuth' => Tymon\JWTAuth\Facades\JWTAuth::class,
+        'Pusher' => Pusher\Pusher::class,
+        'Menu' => Lavary\Menu\Facade::class
     ],
-
 ];

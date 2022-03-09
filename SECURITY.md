@@ -1,18 +1,5 @@
 # Security Policy
 
-**PLEASE DON'T DISCLOSE SECURITY-RELATED ISSUES PUBLICLY, [SEE BELOW](#reporting-a-vulnerability).**
-
-## Supported Versions
-
-Feel free to report security issues based on the following chart.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.2.x   | :x:                |
-| 1.3.x   | :x:                |
-| 2.0.x   | :x:                |
-| 2.1.x   | :white_check_mark: |
-
 ## Reporting a Vulnerability
 
-If you discover any security related issues, please email security@akaunting.com instead of using the issue tracker.
+Please email security@craterapp.com to report any security vulnerabilities. We will acknowledge receipt of your vulnerability and strive to send you regular updates about our progress. If you're curious about the status of your disclosure please feel free to email us again.

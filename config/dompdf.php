@@ -12,9 +12,7 @@ return [
     |
     */
     'show_warnings' => false,   // Throw an Exception on warnings from dompdf
-
     'orientation' => 'portrait',
-
     'defines' => [
         /**
          * The location of the DOMPDF font directory
@@ -78,7 +76,7 @@ return [
         /**
          * Whether to enable font subsetting or not.
          */
-        "enable_font_subsetting" => true,
+        "enable_font_subsetting" => false,
 
         /**
          * The PDF rendering backend to use
@@ -119,7 +117,7 @@ return [
          *
          * @link http://www.pdflib.com
          *
-         * If pdflib present in web server and auto or selected explicitely above,
+         * If pdflib present in web server and auto or selected explicitly above,
          * a real license code must exist!
          */
         //"DOMPDF_PDFLIB_LICENSE" => "your license key here",
@@ -151,13 +149,13 @@ return [
          * Used if no suitable fonts can be found. This must exist in the font folder.
          * @var string
          */
-        "default_font" => "DejaVu Sans, sans-serif",
+        "default_font" => "DejaVu Sans",
 
         /**
          * Image DPI setting
          *
          * This setting determines the default DPI setting for images and fonts.  The
-         * DPI may be overridden for inline images by explictly setting the
+         * DPI may be overridden for inline images by explicitly setting the
          * image's width & height style attributes (i.e. if the image's native
          * width is 600 pixels and you specify the image's width as 72 points,
          * the image will have a DPI of 600 in the rendered PDF.  The DPI of
@@ -239,7 +237,8 @@ return [
         /**
          * Use the more-than-experimental HTML5 Lib parser
          */
-        "enable_html5_parser" => false,
+        "enable_html5_parser" => true,
     ],
+
 
 ];

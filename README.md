@@ -1,80 +1,101 @@
-﻿# Akaunting™
+<img src="https://res.cloudinary.com/bytefury/image/upload/v1574149856/Crater/craterframe.png">
 
-[![Release](https://img.shields.io/github/v/release/akaunting/akaunting?label=release)](https://github.com/akaunting/akaunting/releases)
-![Downloads](https://img.shields.io/github/downloads/akaunting/akaunting/total?label=downloads)
-[![Translations](https://badges.crowdin.net/akaunting/localized.svg)](https://crowdin.com/project/akaunting)
-[![Tests](https://img.shields.io/github/workflow/status/akaunting/akaunting/Tests?label=tests)](https://github.com/akaunting/akaunting/actions)
-[![License](https://img.shields.io/github/license/akaunting/akaunting?label=license)](LICENSE.txt)
+## Introduction
 
-Akaunting is a free, open source and online accounting software designed for small businesses and freelancers. It is built with modern technologies such as Laravel, VueJS, Bootstrap 4, RESTful API etc. Thanks to its modular structure, Akaunting provides an awesome App Store for users and developers.
+Crater is an open-source web & mobile app that helps you track expenses, payments & create professional invoices & estimates.
 
-* [Home](https://akaunting.com) - The house of Akaunting
-* [Forum](https://akaunting.com/forum) - Ask for support
-* [Documentation](https://akaunting.com/docs) - Learn how to use
-* [Developer Portal](https://developer.akaunting.com) - Generate passive income
-* [App Store](https://akaunting.com/apps) - Extend your Akaunting
-* [Translations](https://crowdin.com/project/akaunting) - Help us translate Akaunting
+Web Application is made using Laravel & VueJS while the Mobile Apps are built using React Native.
 
-## Requirements
+# Table of Contents
 
-* PHP 7.3 or higher
-* Database (eg: MySQL, PostgreSQL, SQLite)
-* Web Server (eg: Apache, Nginx, IIS)
-* [Other libraries](https://akaunting.com/docs/requirements)
+1. [Documentation](#documentation)
+2. [Download](#download)
+3. [Mobile Apps](#mobile-apps)
+4. [Discord](#discord)
+5. [Roadmap](#roadmap)
+6. [Credits](#credits)
+7. [Help us translate](#translate)
+8. [License](#license)
 
-## Framework
+## Documentation
 
-Akaunting uses [Laravel](http://laravel.com), the best existing PHP framework, as the foundation framework and [Module](https://github.com/akaunting/module) package for Apps.
+- [Installation Steps](https://docs.craterapp.com/installation.html)
+- [User Guide](https://docs.craterapp.com/)
+- [Developer Guide](https://docs.craterapp.com/developer-guide.html)
+- [API Documentation](https://api-docs.craterapp.com)
 
-## Installation
+## Download
 
-* Install [Composer](https://getcomposer.org/download) and [Npm](https://nodejs.org/en/download)
-* Clone the repository: `git clone https://github.com/akaunting/akaunting.git`
-* Install dependencies: `composer install ; npm install ; npm run dev`
-* Install Akaunting:
+- [Download Link](https://craterapp.com/downloads)
 
-```bash
-php artisan install --db-name="akaunting" --db-username="root" --db-password="pass" --admin-email="admin@company.com" --admin-password="123456"
-```
+## Mobile Apps
 
-* Create sample data (optional): `php artisan sample-data:seed`
+- [Android](https://play.google.com/store/apps/details?id=com.craterapp.app)
+- [IOS](https://apps.apple.com/app/id1489169767)
+- [Source](https://github.com/bytefury/crater-mobile)
 
-## Contributing
+## Discord
 
-Please, be very clear on your commit messages and pull requests, empty pull request messages may be rejected without reason.
+Join the Crater discord server to discuss:
+[Invite Link](https://discord.gg/nyTstm6)
 
-When contributing code to Akaunting, you must follow the PSR coding standards. The golden rule is: Imitate the existing Akaunting code.
+## Roadmap
 
-Please note that this project is released with a [Contributor Code of Conduct](https://akaunting.com/conduct). By participating in this project you agree to abide by its terms.
+~~Here's a rough roadmap of things to come (not in any specific order):
 
-## Translation
+- [x] Automatic Update
+- [x] Email Configuration
+- [x] Installation Wizard
+- [x] Address Customisation & Default notes
+- [x] Edit Email before Sending Invoice
+- [x] Available as a docker image
+- [x] Performance Improvements
+- [x] Customer View page
+- [x] Add and Use Custom Fields on Invoices & Estimates.
+- [x] Multiple Companies
+- [x] Recurring Invoices
+- [x] Customer Portal
+- [x] Accept Payments (Stripe Integration)
+- [x] White Labeling (Easy Invoice, Email & Consumer Portal Theme customisation)
+- [ ] Modules API
+- [ ] Blockchain Integration
+- [ ] Web 3.0 Accounting
+- [ ] Vendors & Bills
+- [ ] Inventory Management 
+- [ ] Payment Reminders
+- [ ] Improve Accessibility
+- [ ] Debit & Credit Notes
+- [ ] Time Tracking
+- [ ] Full service Payroll
 
-If you'd like to contribute translations, please check out our [Crowdin](https://crowdin.com/project/akaunting) project.
 
-## Changelog
+## Copyright
 
-Please see [Releases](../../releases) for more information what has changed recently.
+© 2022 Crater Invoice, Inc.
 
-## Security
+**Special thanks to:**
 
-Please review [our security policy](https://github.com/akaunting/akaunting/security/policy) on how to report security vulnerabilities.
+- [Birkhoff Lee](https://github.com/BirkhoffLee)
+- [Akaunting](https://github.com/akaunting/akaunting)
+- [MakerLab](https://github.com/MakerLab-Dev)
+- [Sebastian Cretu](https://github.com/sebastiancretu)
+- [Florian Gareis](https://github.com/TheZoker)
 
-## Credits
+## Translate
 
-* [Denis Duliçi](https://github.com/denisdulici)
-* [Cüneyt Şentürk](https://github.com/cuneytsenturk)
-* [All Contributors](../../contributors)
+Help us translate on https://crowdin.com/project/crater-invoice
 
-## Partners
+**Thanks to Translation Contributors:**
 
-Each of our partners can help you craft a beautiful, well-architected project. Feel free to get in [contact](https://akaunting.com/contact) with us to become a partner.
-
-* [Creative Tim](https://www.creative-tim.com) is our design partner since Akaunting 2.0 version. They create beautiful UI Kits, Templates, and Dashboards built on top of Bootstrap, Vue.js, React, Angular, Node.js, and Laravel.
-
-## Sponsors
-
-Support Akaunting by becoming a sponsor on [Patreon](https://www.patreon.com/akaunting). Your logo will show up here with a link to your website.
+- [Hassan A. Ba Abdullah (Arabic)](https://github.com/hsnapps)
+- [Clément de Louvencourt (French)](https://github.com/PHClement)
+- [Robin Delattre (French)](https://github.com/RobinDev)
+- [René Loos (Dutch)](https://github.com/Loosie94)
+- [Stefan Azarić (Serbian)](https://github.com/azaricstefan)
+- [Emmanuel Lampe (German)](https://github.com/rexlManu)
+- [edevrob (Latvian)](https://github.com/edevrob)
 
 ## License
 
-Akaunting is released under the [GPLv3 license](LICENSE.txt).
+Crater is released under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3.
+See [LICENSE](LICENSE) for details.

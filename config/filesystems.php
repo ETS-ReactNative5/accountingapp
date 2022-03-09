@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DRIVER', 'uploads'),
+    'default' => env('FILESYSTEM_DRIVER', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -30,23 +30,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Allowed file mimes
-    |--------------------------------------------------------------------------
-    */
-
-    'mimes' => env('FILESYSTEM_MIMES', 'pdf,jpeg,jpg,png'),
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Allowed file max size, in MB
-    |--------------------------------------------------------------------------
-    */
-
-    'max_size' => env('FILESYSTEM_MAX_SIZE', '2'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -54,7 +37,7 @@ return [
     | may even configure multiple disks of the same driver. Defaults have
     | been setup for each driver as an example of the required options.
     |
-    | Supported Drivers: "local", "ftp", "sftp", "s3"
+    | Supported Drivers: "local", "ftp", "s3"
     |
     */
 
@@ -68,35 +51,49 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => app()->runningInConsole() ? '' : url('/') . '/storage',
+            'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
-        ],
-
-        'temp' => [
-            'driver' => 'local',
-            'root' => storage_path('app/temp'),
-            'url' => app()->runningInConsole() ? '' : url('/') . '/temp',
-            'visibility' => 'private',
-        ],
-
-        'uploads' => [
-            'driver' => 'local',
-            'root' => storage_path('app/uploads'),
-            'url' => app()->runningInConsole() ? '' : url('/') . '/uploads',
-            'visibility' => 'private',
         ],
 
         's3' => [
             'driver' => 's3',
-            'root' =>  env('AWS_ROOT'),
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+            'key' => env('AWS_KEY'),
+            'secret' => env('AWS_SECRET'),
+            'region' => env('AWS_REGION'),
             'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'visibility' => env('AWS_VISIBILITY', 'private'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'root' => env('AWS_ROOT'),
+        ],
+
+        'media' => [
+            'driver' => 'local',
+            'root' => public_path('media'),
+        ],
+
+        'doSpaces' => [
+            'type' => 'AwsS3',
+            'driver' => 's3',
+            'key' => env('DO_SPACES_KEY'),
+            'secret' => env('DO_SPACES_SECRET'),
+            'region' => env('DO_SPACES_REGION'),
+            'bucket' => env('DO_SPACES_BUCKET'),
+            'root' => env('DO_SPACES_ROOT'),
+            'endpoint' => env('DO_SPACES_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+        ],
+
+        'dropbox' => [
+            'driver' => 'dropbox',
+            'type' => 'DropboxV2',
+            'token' => env('DROPBOX_TOKEN'),
+            'key' => env('DROPBOX_KEY'),
+            'secret' => env('DROPBOX_SECRET'),
+            'app' => env('DROPBOX_APP'),
+            'root' => env('DROPBOX_ROOT'),
+        ],
+
+        'views' => [
+            'driver' => 'local',
+            'root' => resource_path('views'),
         ],
 
     ],

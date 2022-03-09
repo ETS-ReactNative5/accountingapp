@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'paths' => [env('API_SUBTYPE', 'api') . '/*'],
+    'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 
